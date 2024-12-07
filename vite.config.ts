@@ -9,9 +9,9 @@ export default defineConfig({
       "/llm": {
         target: "https://api.anthropic.com/v1",
         changeOrigin: true,
-        rewrite: (path) => {
-          const newPath = path.replace(/^\/llm/, "");
-          return newPath;
+        rewrite: (path) => path.replace(/^\/llm/, ""),
+        headers: {
+          "anthropic-dangerous-direct-browser-access": "true",
         },
       },
     },

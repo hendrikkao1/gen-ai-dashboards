@@ -1,21 +1,12 @@
-import { useEffect } from 'react';
 import './App.css'
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
+import { useChat } from 'ai/react';
 
 const anthropic = createAnthropic({
   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
   baseURL: '/llm',
-  fetch(input, init) {
-    const headers = new Headers(Object.entries(init?.headers ?? {}));
-    headers.append('anthropic-dangerous-direct-browser-access', 'true');
-
-    return fetch(input, {
-      ...init,
-      headers,
-    });
-  },
 });
 
 const systemPrompt = `
@@ -47,11 +38,11 @@ For each identified root cause:
 ## 4. Query Construction
 When creating queries:
 - Generate appropriate NQL queries for possible metrics
-` 
+`
 
 
 const getText = async () => {
-  const { text } = await generateText({
+  const result = streamText({
     model: anthropic('claude-3-5-haiku-latest', {
       cacheControl: true,
     }),
@@ -76,24 +67,36 @@ const getText = async () => {
       },
       {
         role: 'user',
-        content: 'My web applications are slow',
+        content: "Hello",
       },
     ],
   });
 
-  return text;
+  return result.toDataStreamResponse();
 }
-
-// getText()
 
 function App() {
 
-  useEffect(() => {
-    // getText().then(console.log)
-  }, [])
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    fetch: () => {
+      return getText();
+    },
+  });
 
   return (
-    <h1>Gen AI Dashboards</h1>
+    <>
+      <h1>Gen AI Dashboards</h1>
+      {messages.map(message => (
+        <div key={message.id}>
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.content}
+        </div>
+      ))}
+      <form onSubmit={handleSubmit}>
+        <input name="prompt" value={input} onChange={handleInputChange} />
+        <button type="submit">Submit</button>
+      </form>
+    </>
   )
 }
 
